@@ -51,10 +51,12 @@ def open_pr(repo, source, target, title, description):
 def main():
     args = parse_args()
     if args.code:
+        message = '%s (%s)' % (args.message, args.code.upper())
         desc = 'Closes %s' % args.code.upper()
     else:
         desc = None
-    res = open_pr(parse.quote_plus(args.repo), args.source, args.target, args.message, desc)
+        message = args.message
+    res = open_pr(parse.quote_plus(args.repo), args.source, args.target, message, desc)
     print('-' * 10)
     pprint(res.get('web_url') or res)
 

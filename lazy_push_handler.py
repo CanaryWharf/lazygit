@@ -13,7 +13,7 @@ URL = 'https://gitlab.com'
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('repo', help="repo")
-    parser.add_argument('-c', '--code', required=True, help="jira code")
+    parser.add_argument('-c', '--code', help="jira code")
     parser.add_argument('-s', '--source', required=True, help="source branch")
     parser.add_argument('-t', '--target', required=True, help="target branch")
     parser.add_argument('-m', '--message', required=True, help="Title of the pr")
@@ -28,6 +28,7 @@ def get_endpoint(endpoint: str, token: str, params: Optional[Dict[str, str]] = N
 
 
 def post_data(endpoint: str, token: str, data: Dict[str, Any]):
+    print(endpoint, token, data)
     response = requests.post(get_endpoint(endpoint, token), data=data)
     return response
 
@@ -39,16 +40,21 @@ def open_pr(repo, source, target, title, description):
             'source_branch': source,
             'target_branch': target,
             'title': title,
-            'labels': 'Release',
+            'labels': 'In Review',
             'description': description,
         })
-    return response
+    return response.json()
 
 
 def main():
     args = parse_args()
-    desc = 'Closes %s' % args.code.upper()
-    pprint(open_pr(args.repo, args.source, args.target, args.message, desc))
+    if args.code:
+        desc = 'Closes %s' % args.code.upper()
+    else:
+        desc = None
+    res = open_pr(parse.quote_plus(args.repo), args.source, args.target, args.message, desc)
+    print('-' * 10)
+    pprint(res.get('web_url') or res)
 
 if __name__ == '__main__':
     main()

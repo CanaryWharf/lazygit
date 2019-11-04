@@ -42,6 +42,8 @@ def open_pr(repo, source, target, title, description):
             'title': title,
             'labels': 'In Review',
             'description': description,
+            'remove_source_branch': True,
+            'squash': True,
         })
     return response.json()
 

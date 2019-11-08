@@ -28,7 +28,6 @@ def get_endpoint(endpoint: str, token: str, params: Optional[Dict[str, str]] = N
 
 
 def post_data(endpoint: str, token: str, data: Dict[str, Any]):
-    print(endpoint, token, data)
     response = requests.post(get_endpoint(endpoint, token), data=data)
     return response
 

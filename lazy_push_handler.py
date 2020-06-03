@@ -3,11 +3,26 @@ import argparse
 import os
 from pprint import pprint
 from urllib import parse
+import shlex
+import subprocess
 import requests
+import pyperclip
 
 TOKEN = os.environ.get('GITLAB_TOKEN')
 
 URL = 'https://gitlab.com'
+
+TEMPLATE = '''
+## Problem:
+{problems}
+
+## Fix:
+{fixes}
+
+'''
+
+def notify(msg):
+    subprocess.run(shlex.split(f'notify-send -i info "{msg}"')
 
 
 def parse_args():
@@ -17,6 +32,8 @@ def parse_args():
     parser.add_argument('-s', '--source', required=True, help="source branch")
     parser.add_argument('-t', '--target', required=True, help="target branch")
     parser.add_argument('-m', '--message', required=True, help="Title of the pr")
+    parser.add_argument('-p', '--problem', action='append', help="Problem")
+    parser.add_argument('-f', '--fix', action='append', help="fix")
     return parser.parse_args()
 
 
@@ -49,15 +66,20 @@ def open_pr(repo, source, target, title, description):
 
 def main():
     args = parse_args()
-    if args.code:
-        message = '%s (%s)' % (args.message, args.code.upper())
-        desc = 'Closes %s' % args.code.upper()
+    if args.problem and args.fix:
+        problems = '\n'.join([f'  * {x}' for x in  args.problem])
+        fixes = '\n'.join([f'  * {x}' for x in  args.fix])
+        desc = TEMPLATE.format(problems=problems, fixes=fixes)
     else:
         desc = None
-        message = args.message
-    res = open_pr(parse.quote_plus(args.repo), args.source, args.target, message, desc)
+    title = args.message
+    res = open_pr(parse.quote_plus(args.repo), args.source, args.target, title, desc)
     print('-' * 10)
-    pprint(res.get('web_url') or res)
+    web_url = res.get('web_url')
+    if web_url:
+        pyperclip.copy(web_url)
+        notify('URL copied')
+    pprint(web_url or res)
 
 if __name__ == '__main__':
     main()

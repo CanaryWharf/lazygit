@@ -22,7 +22,7 @@ TEMPLATE = '''
 '''
 
 def notify(msg):
-    subprocess.run(shlex.split(f'notify-send -i info "{msg}"')
+    subprocess.run(shlex.split(f'notify-send -i info "{msg}"'), check=False)
 
 
 def parse_args():

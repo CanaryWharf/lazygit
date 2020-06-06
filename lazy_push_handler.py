@@ -12,13 +12,20 @@ TOKEN = os.environ.get('GITLAB_TOKEN')
 
 URL = 'https://gitlab.com'
 
-TEMPLATE = '''
+PROBLEM_TEMPLATE = '''
 ## Problem:
 {problems}
+'''
 
+
+FIX_TEMPLATE = '''
 ## Fix:
 {fixes}
+'''
 
+NOTE_TEMPLATE = '''
+## Notes
+{notes}
 '''
 
 def notify(msg):
@@ -34,6 +41,7 @@ def parse_args():
     parser.add_argument('-m', '--message', required=True, help="Title of the pr")
     parser.add_argument('-p', '--problem', action='append', help="Problem")
     parser.add_argument('-f', '--fix', action='append', help="fix")
+    parser.add_argument('-n', '--note', action='append', help="notes")
     return parser.parse_args()
 
 
@@ -66,10 +74,19 @@ def open_pr(repo, source, target, title, description):
 
 def main():
     args = parse_args()
-    if args.problem and args.fix:
-        problems = '\n'.join([f'  * {x}' for x in  args.problem])
-        fixes = '\n'.join([f'  * {x}' for x in  args.fix])
-        desc = TEMPLATE.format(problems=problems, fixes=fixes)
+    if args.problem or args.fix:
+        desc = ''
+        if args.problem:
+            problems = '\n'.join([f'  * {x}' for x in  args.problem])
+            desc += PROBLEM_TEMPLATE.format(problems=problems)
+        if args.fix:
+            fixes = '\n'.join([f'  * {x}' for x in  args.fix])
+            desc += FIX_TEMPLATE.format(fixes=fixes)
+
+        if args.note:
+            notes = '\n'.join([f'  * {x}' for x in args.note])
+            desc += NOTE_TEMPLATE.format(notes=notes)
+
     else:
         desc = None
     title = args.message

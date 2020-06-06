@@ -13,13 +13,13 @@ TOKEN = os.environ.get('GITLAB_TOKEN')
 URL = 'https://gitlab.com'
 
 PROBLEM_TEMPLATE = '''
-## Problem:
+## Problems:
 {problems}
 '''
 
 
 FIX_TEMPLATE = '''
-## Fix:
+## Fixes:
 {fixes}
 '''
 

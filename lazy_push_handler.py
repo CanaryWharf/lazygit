@@ -1,3 +1,4 @@
+# pylint: disable=too-many-arguments
 from typing import Optional, Dict, Any
 import argparse
 import os
@@ -28,6 +29,11 @@ NOTE_TEMPLATE = '''
 {notes}
 '''
 
+FEATURE_TEMPLATE = '''
+## Feature:
+{features}
+'''
+
 def notify(msg):
     subprocess.run(shlex.split(f'notify-send -i info "{msg}"'), check=False)
 
@@ -41,7 +47,9 @@ def parse_args():
     parser.add_argument('-m', '--message', required=True, help="Title of the pr")
     parser.add_argument('-p', '--problem', action='append', help="Problem")
     parser.add_argument('-f', '--fix', action='append', help="fix")
+    parser.add_argument('-k', '--feature', action='append', help="feature")
     parser.add_argument('-n', '--note', action='append', help="notes")
+    parser.add_argument('-b', '--block', action='store_true', help="notes")
     return parser.parse_args()
 
 
@@ -56,7 +64,10 @@ def post_data(endpoint: str, token: str, data: Dict[str, Any]):
     response = requests.post(get_endpoint(endpoint, token), data=data)
     return response
 
-def open_pr(repo, source, target, title, description):
+def open_pr(repo, source, target, title, description, block=False):
+    labels = ['In Review']
+    if block:
+        labels.append('Blocked')
     response = post_data(
         'projects/%s/merge_requests' % repo,
         TOKEN,
@@ -64,7 +75,7 @@ def open_pr(repo, source, target, title, description):
             'source_branch': source,
             'target_branch': target,
             'title': title,
-            'labels': 'In Review',
+            'labels': ','.join(labels),
             'description': description,
             'remove_source_branch': True,
             'squash': True,
@@ -87,10 +98,14 @@ def main():
             notes = '\n'.join([f'  * {x}' for x in args.note])
             desc += NOTE_TEMPLATE.format(notes=notes)
 
+        if args.feature:
+            features = '\n'.join([f'  * {x}' for x in args.feature])
+            desc += FEATURE_TEMPLATE.format(features=features)
+
     else:
         desc = None
     title = args.message
-    res = open_pr(parse.quote_plus(args.repo), args.source, args.target, title, desc)
+    res = open_pr(parse.quote_plus(args.repo), args.source, args.target, title, desc, args.block)
     print('-' * 10)
     web_url = res.get('web_url')
     if web_url:

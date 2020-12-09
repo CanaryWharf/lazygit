@@ -85,25 +85,24 @@ def open_pr(repo, source, target, title, description, block=False):
 
 def main():
     args = parse_args()
-    if args.problem or args.fix:
-        desc = ''
-        if args.problem:
-            problems = '\n'.join([f'  * {x}' for x in  args.problem])
-            desc += PROBLEM_TEMPLATE.format(problems=problems)
-        if args.fix:
-            fixes = '\n'.join([f'  * {x}' for x in  args.fix])
-            desc += FIX_TEMPLATE.format(fixes=fixes)
+    desc = ''
+    if args.feature:
+        features = '\n'.join([f'  * {x}' for x in args.feature])
+        desc += FEATURE_TEMPLATE.format(features=features)
 
-        if args.note:
-            notes = '\n'.join([f'  * {x}' for x in args.note])
-            desc += NOTE_TEMPLATE.format(notes=notes)
+    if args.problem:
+        problems = '\n'.join([f'  * {x}' for x in  args.problem])
+        desc += PROBLEM_TEMPLATE.format(problems=problems)
 
-        if args.feature:
-            features = '\n'.join([f'  * {x}' for x in args.feature])
-            desc += FEATURE_TEMPLATE.format(features=features)
+    if args.fix:
+        fixes = '\n'.join([f'  * {x}' for x in  args.fix])
+        desc += FIX_TEMPLATE.format(fixes=fixes)
 
-    else:
-        desc = None
+    if args.note:
+        notes = '\n'.join([f'  * {x}' for x in args.note])
+        desc += NOTE_TEMPLATE.format(notes=notes)
+
+    desc = desc or None
     title = args.message
     res = open_pr(parse.quote_plus(args.repo), args.source, args.target, title, desc, args.block)
     print('-' * 10)

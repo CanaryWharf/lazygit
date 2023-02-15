@@ -65,9 +65,11 @@ def post_data(endpoint: str, token: str, data: Dict[str, Any]):
     return response
 
 def open_pr(repo, source, target, title, description, block=False):
-    labels = ['In Review']
+    labels = []
     if block:
         labels.append('Blocked')
+    else:
+        labels.append('In Review')
     response = post_data(
         'projects/%s/merge_requests' % repo,
         TOKEN,

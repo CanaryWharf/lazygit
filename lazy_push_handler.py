@@ -34,17 +34,40 @@ FEATURE_TEMPLATE = '''
 {features}
 '''
 
-def notify(msg):
-    subprocess.run(shlex.split(f'notify-send -i info "{msg}"'), check=False)
+def run(cmd):
+    return subprocess.check_output(shlex.split(cmd))
 
+def notify(msg):
+    run(f'notify-send -i info "{msg}"')
+
+def get_default_branch():
+    origins = run('git remote show origin').decode().strip()
+    origin = [x for x in origins.split('\n') if 'HEAD branch' in x][0].split(':')[-1].strip()
+    return origin
+
+
+def get_repo_name():
+    push_repos = run('git remote -v').decode().strip()
+    push_repo = [x for x in push_repos.split('\n') if '(push)' in x][0].split(':')[-1].split('.')[0]
+    return push_repo
+
+def get_source_branch():
+    return run('git symbolic-ref --short HEAD').decode().strip()
+
+def get_pr_title():
+    return run('git log -1 --pretty=%s').decode().strip()
+
+
+def push_source_branch(branch):
+    run(f'git push -u origin "{branch}"')
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('repo', help="repo")
+    parser.add_argument('-r', '--repo', help="repo url")
     parser.add_argument('-c', '--code', help="jira code")
-    parser.add_argument('-s', '--source', required=True, help="source branch")
-    parser.add_argument('-t', '--target', required=True, help="target branch")
-    parser.add_argument('-m', '--message', required=True, help="Title of the pr")
+    parser.add_argument('-s', '--source', help="source branch")
+    parser.add_argument('-t', '--target', help="target branch")
+    parser.add_argument('-m', '--message', help="Title of the pr")
     parser.add_argument('-p', '--problem', action='append', help="Problem")
     parser.add_argument('-f', '--fix', action='append', help="fix")
     parser.add_argument('-k', '--feature', action='append', help="feature")
@@ -57,7 +80,7 @@ def get_endpoint(endpoint: str, token: str, params: Optional[Dict[str, str]] = N
     parsed_params = ''
     if params:
         parsed_params = parse.urlencode(params)
-    return '%s/api/v4/%s?per_page=100&private_token=%s&%s' % (URL, endpoint, token, parsed_params)
+    return '%s/api/v4/%s?private_token=%s&%s' % (URL, endpoint, token, parsed_params)
 
 
 def post_data(endpoint: str, token: str, data: Dict[str, Any]):
@@ -105,9 +128,12 @@ def main():
         desc += NOTE_TEMPLATE.format(notes=notes)
 
     desc = desc or None
-    title = args.message
-    res = open_pr(parse.quote_plus(args.repo), args.source, args.target, title, desc, args.block)
-    print('-' * 10)
+    title = args.message or get_pr_title()
+    source = args.source or get_source_branch()
+    target = args.target or get_default_branch()
+    repo = args.repo or get_repo_name()
+    push_source_branch(source)
+    res = open_pr(parse.quote_plus(repo), source, target, title, desc, args.block)
     web_url = res.get('web_url')
     if web_url:
         pyperclip.copy(web_url)

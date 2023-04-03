@@ -79,6 +79,7 @@ def parse_args():
     parser.add_argument("-k", "--feature", action="append", help="feature")
     parser.add_argument("-n", "--note", action="append", help="notes")
     parser.add_argument("-b", "--block", action="store_true", help="notes")
+    parser.add_argument("-o", "--collect", help="Collect links in format")
     return parser.parse_args()
 
 
@@ -119,10 +120,6 @@ def open_pr(repo, source, target, title, description, block=False):
 def main():
     args = parse_args()
     desc = ""
-    if args.feature:
-        features = "\n".join([f"  * {x}" for x in args.feature])
-        desc += FEATURE_TEMPLATE.format(features=features)
-
     if args.problem:
         problems = "\n".join([f"  * {x}" for x in args.problem])
         desc += PROBLEM_TEMPLATE.format(problems=problems)
@@ -130,6 +127,10 @@ def main():
     if args.fix:
         fixes = "\n".join([f"  * {x}" for x in args.fix])
         desc += FIX_TEMPLATE.format(fixes=fixes)
+
+    if args.feature:
+        features = "\n".join([f"  * {x}" for x in args.feature])
+        desc += FEATURE_TEMPLATE.format(features=features)
 
     if args.note:
         notes = "\n".join([f"  * {x}" for x in args.note])
@@ -144,8 +145,12 @@ def main():
     res = open_pr(parse.quote_plus(repo), source, target, title, desc, args.block)
     web_url = res.get("web_url")
     if web_url:
-        pyperclip.copy(web_url)
-        notify("URL copied")
+        if args.collect:
+            with open(args.collect, 'a', encoding="utf-8") as fobj:
+                fobj.write(f'{web_url}\n')
+        else:
+            pyperclip.copy(web_url)
+            notify("URL copied")
     pprint(web_url or res)
 
 

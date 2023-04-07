@@ -70,10 +70,9 @@ def push_source_branch(branch):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-r", "--repo", help="repo url")
-    parser.add_argument("-c", "--code", help="jira code")
     parser.add_argument("-s", "--source", help="source branch")
     parser.add_argument("-t", "--target", help="target branch")
-    parser.add_argument("-m", "--message", help="Title of the pr")
+    parser.add_argument("--title", help="Title of the pr")
     parser.add_argument("-p", "--problem", action="append", help="Problem")
     parser.add_argument("-f", "--fix", action="append", help="fix")
     parser.add_argument("-k", "--feature", action="append", help="feature")
@@ -137,7 +136,7 @@ def main():
         desc += NOTE_TEMPLATE.format(notes=notes)
 
     desc = desc or None
-    title = args.message or get_pr_title()
+    title = args.title or get_pr_title()
     source = args.source or get_source_branch()
     target = args.target or get_default_branch()
     repo = args.repo or get_repo_name()

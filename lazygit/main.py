@@ -57,9 +57,6 @@ def push_source_branch() -> None:
 
 
 def get_remote_source_branch() -> str:
-    # try:
-    #     return run("git rev-parse --abbrev-ref --symbolic-full-name @{u}")
-    # except:
     return run("git rev-parse --abbrev-ref HEAD")
 
 

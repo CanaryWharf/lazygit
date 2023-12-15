@@ -1,15 +1,13 @@
-# pylint: disable=too-many-arguments
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 import argparse
 import os
-from pprint import pprint
-from urllib import parse
 import shlex
+import re
 import subprocess
-import requests
-import pyperclip
+from lazygit.exceptions import LazyGitError
+from lazygit.handlers import get_pr_handler
 
-TOKEN = os.environ.get("GITLAB_TOKEN")
+TOKEN = os.environ.get("LAZYGIT_ACCESS_TOKEN")
 
 URL = "https://gitlab.com"
 
@@ -34,123 +32,100 @@ FEATURE_TEMPLATE = """
 {features}
 """
 
+def run(cmd: str) -> str:
+    return subprocess.check_output(
+        shlex.split(cmd),
+        stderr=subprocess.STDOUT,
+    ).decode().strip()
 
-def run(cmd):
-    return subprocess.check_output(shlex.split(cmd))
 
-
-def notify(msg):
+def notify(msg: str) -> None:
     run(f'notify-send -i info "{msg}"')
 
 
-def get_default_branch():
-    origins = run("git remote show origin").decode().strip()
-    origin = [x for x in origins.split("\n") if "HEAD branch" in x][0].split(":")[-1].strip()
-    return origin
+def get_branch_info() -> str:
+    info = run("git remote show origin")
+    return info
 
 
-def get_repo_name():
-    push_repos = run("git remote -v").decode().strip()
-    push_repo = [x for x in push_repos.split("\n") if "(push)" in x][0].split(":")[-1].split(".")[0]
-    return push_repo
+def get_last_commit_message() -> str:
+    return run("git log -1 --pretty=%s")
 
 
-def get_source_branch():
-    return run("git symbolic-ref --short HEAD").decode().strip()
+def push_source_branch() -> None:
+    run("git push -u origin HEAD")
 
 
-def get_pr_title():
-    return run("git log -1 --pretty=%s").decode().strip()
+def get_remote_source_branch() -> str:
+    # try:
+    #     return run("git rev-parse --abbrev-ref --symbolic-full-name @{u}")
+    # except:
+    return run("git rev-parse --abbrev-ref HEAD")
 
 
-def push_source_branch(branch):
-    run(f'git push -u origin "{branch}"')
-
-
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("-r", "--repo", help="repo url")
     parser.add_argument("-s", "--source", help="source branch")
     parser.add_argument("-t", "--target", help="target branch")
     parser.add_argument("--title", help="Title of the pr")
+    parser.add_argument("-b", "--block", action="store_true", help="notes")
+    parser.add_argument("-o", "--collect", help="Collect links in format")
+    parser.add_argument("--token", help="Access Token for remote git")
+    parser.add_argument("--non-interactive", help="Dont ask for input. Descriptions are blank unless you specifiy --description", action="store_true")
+    parser.add_argument("--description", help="Description for a pull request")
+
+    # template specific
     parser.add_argument("-p", "--problem", action="append", help="Problem")
     parser.add_argument("-f", "--fix", action="append", help="fix")
     parser.add_argument("-k", "--feature", action="append", help="feature")
     parser.add_argument("-n", "--note", action="append", help="notes")
-    parser.add_argument("-b", "--block", action="store_true", help="notes")
-    parser.add_argument("-o", "--collect", help="Collect links in format")
     return parser.parse_args()
 
 
-def get_endpoint(endpoint: str, token: str, params: Optional[Dict[str, str]] = None) -> str:
-    parsed_params = ""
-    if params:
-        parsed_params = parse.urlencode(params)
-    return "%s/api/v4/%s?private_token=%s&%s" % (URL, endpoint, token, parsed_params)
+def get_remote_url(info: str) -> str:
+    match = re.search(r"Push\s+URL: ([a-zA-Z0-9\.\-:@/_]+)", info, flags=re.IGNORECASE)
+
+    if not match:
+        raise LazyGitError("Remote url not found")
+    return match.group(1)
 
 
-def post_data(endpoint: str, token: str, data: Dict[str, Any]):
-    response = requests.post(get_endpoint(endpoint, token), data=data)
-    return response
+def get_main_branch(info: str) -> str:
+    match = re.search(r"HEAD\s+branch: ([a-zA-Z0-9\.\-:/]+)", info, flags=re.IGNORECASE)
+    if not match:
+        raise LazyGitError("Main remote branch not found")
+    return match.group(1)
 
 
-def open_pr(repo, source, target, title, description, block=False):
-    labels = []
-    if block:
-        labels.append("Blocked")
-    else:
-        labels.append("In Review")
-    response = post_data(
-        "projects/%s/merge_requests" % repo,
-        TOKEN,
-        data={
-            "source_branch": source,
-            "target_branch": target,
-            "title": title,
-            "labels": ",".join(labels),
-            "description": description,
-            "remove_source_branch": True,
-            "squash": True,
-        },
-    )
-    return response.json()
 
-
-def main():
+def main() -> None:
     args = parse_args()
-    desc = ""
-    if args.problem:
-        problems = "\n".join([f"  * {x}" for x in args.problem])
-        desc += PROBLEM_TEMPLATE.format(problems=problems)
-
-    if args.fix:
-        fixes = "\n".join([f"  * {x}" for x in args.fix])
-        desc += FIX_TEMPLATE.format(fixes=fixes)
-
-    if args.feature:
-        features = "\n".join([f"  * {x}" for x in args.feature])
-        desc += FEATURE_TEMPLATE.format(features=features)
-
-    if args.note:
-        notes = "\n".join([f"  * {x}" for x in args.note])
-        desc += NOTE_TEMPLATE.format(notes=notes)
-
-    desc = desc or None
-    title = args.title or get_pr_title()
-    source = args.source or get_source_branch()
-    target = args.target or get_default_branch()
-    repo = args.repo or get_repo_name()
-    push_source_branch(source)
-    res = open_pr(parse.quote_plus(repo), source, target, title, desc, args.block)
-    web_url = res.get("web_url")
-    if web_url:
-        if args.collect:
-            with open(args.collect, 'a', encoding="utf-8") as fobj:
-                fobj.write(f'{web_url}\n')
-        else:
-            pyperclip.copy(web_url)
-            notify("URL copied")
-    pprint(web_url or res)
+    info = get_branch_info()
+    title = args.title or get_last_commit_message()
+    if args.block:
+        title = f'Draft: {title}'
+    target = args.target or get_main_branch(info)
+    remote_url = args.repo or get_remote_url(info)
+    source = args.source or get_remote_source_branch()
+    token = args.token or TOKEN
+    if not token:
+        raise LazyGitError("No Credentials Found")
+    handler = get_pr_handler(remote_url, token)
+    if args.non_interactive:
+        description = args.description or ''
+    else:
+        description = args.description or handler.get_description()
+    push_source_branch()
+    url = handler.open_pr(
+        remote_url=remote_url,
+        source=source,
+        target=target,
+        title=title,
+        description=description or None,
+        options={"block": args.block},
+    )
+    print(url)
 
 
 if __name__ == "__main__":

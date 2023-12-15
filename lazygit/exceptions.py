@@ -1,0 +1,2 @@
+class LazyGitError(ValueError):
+    pass

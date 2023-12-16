@@ -4,14 +4,14 @@ import requests
 from lazygit.modules.abstract import LazyGit
 
 
-class LazyGitlabHandler(LazyGit):
+class GitlabHandler(LazyGit):
     pr_template_file = '.gitlab/merge_request_templates/default.md'
 
     def get_endpoint(self, endpoint: str, token: str) -> str:
         return f"{self.domain}/api/v4/{endpoint}?private_token={token}"
 
     def post_data(self, endpoint: str, token: str, data: dict):
-        return requests.post(self.get_endpoint(endpoint, token), data=data)
+        return requests.post(self.get_endpoint(endpoint, token), data=data, timeout=30)
 
     @staticmethod
     def get_repo_id(repo: str) -> str:

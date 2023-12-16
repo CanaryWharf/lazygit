@@ -2,10 +2,12 @@ from typing import Tuple
 import re
 from lazygit.exceptions import LazyGitError
 from lazygit.modules.abstract import LazyGit
-from lazygit.modules.gitlab import LazyGitlabHandler
+from lazygit.modules.gitlab import GitlabHandler
+from lazygit.modules.github import GithubHandler
 
 DOMAIN_MAPPINGS = {
-    "https://gitlab.com": LazyGitlabHandler,
+    "https://gitlab.com": GitlabHandler,
+    "https://github.com": GithubHandler,
 }
 
 def get_domain_and_path(remote_url: str) -> Tuple[str, str]:

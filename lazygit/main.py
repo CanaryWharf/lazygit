@@ -9,34 +9,16 @@ from lazygit.handlers import get_pr_handler
 
 TOKEN = os.environ.get("LAZYGIT_ACCESS_TOKEN")
 
-URL = "https://gitlab.com"
-
-PROBLEM_TEMPLATE = """
-## Problems:
-{problems}
-"""
-
-
-FIX_TEMPLATE = """
-## Fixes:
-{fixes}
-"""
-
-NOTE_TEMPLATE = """
-## Notes
-{notes}
-"""
-
-FEATURE_TEMPLATE = """
-## Feature:
-{features}
-"""
 
 def run(cmd: str) -> str:
-    return subprocess.check_output(
-        shlex.split(cmd),
-        stderr=subprocess.STDOUT,
-    ).decode().strip()
+    return (
+        subprocess.check_output(
+            shlex.split(cmd),
+            stderr=subprocess.STDOUT,
+        )
+        .decode()
+        .strip()
+    )
 
 
 def notify(msg: str) -> None:
@@ -69,14 +51,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-b", "--block", action="store_true", help="notes")
     parser.add_argument("-o", "--collect", help="Collect links in format")
     parser.add_argument("--token", help="Access Token for remote git")
-    parser.add_argument("--non-interactive", help="Dont ask for input. Descriptions are blank unless you specifiy --description", action="store_true")
+    parser.add_argument(
+        "--non-interactive",
+        help="Dont ask for input. Descriptions are blank unless you specifiy --description",
+        action="store_true",
+    )
     parser.add_argument("--description", help="Description for a pull request")
-
-    # template specific
-    parser.add_argument("-p", "--problem", action="append", help="Problem")
-    parser.add_argument("-f", "--fix", action="append", help="fix")
-    parser.add_argument("-k", "--feature", action="append", help="feature")
-    parser.add_argument("-n", "--note", action="append", help="notes")
     return parser.parse_args()
 
 
@@ -95,22 +75,23 @@ def get_main_branch(info: str) -> str:
     return match.group(1)
 
 
-
 def main() -> None:
     args = parse_args()
     info = get_branch_info()
     title = args.title or get_last_commit_message()
     if args.block:
-        title = f'Draft: {title}'
+        title = f"Draft: {title}"
     target = args.target or get_main_branch(info)
     remote_url = args.repo or get_remote_url(info)
     source = args.source or get_remote_source_branch()
+    if source == target:
+        raise LazyGitError("Can't open a PR to the same branch")
     token = args.token or TOKEN
     if not token:
         raise LazyGitError("No Credentials Found")
     handler = get_pr_handler(remote_url, token)
     if args.non_interactive:
-        description = args.description or ''
+        description = args.description or ""
     else:
         description = args.description or handler.get_description()
     push_source_branch()

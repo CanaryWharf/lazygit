@@ -10,6 +10,7 @@ DOMAIN_MAPPINGS = {
     "https://github.com": GithubHandler,
 }
 
+
 def get_domain_and_path(remote_url: str) -> Tuple[str, str]:
     regex = (
         r"((git@)|(https:\/\/))(([a-zA-Z0-9]+):([a-zA-Z0-9]+)@)?"
@@ -22,7 +23,7 @@ def get_domain_and_path(remote_url: str) -> Tuple[str, str]:
     path = match.group("repo_path")
     if not domain or not path:
         raise LazyGitError("Could not find domain")
-    return f'https://{domain}', path
+    return f"https://{domain}", path
 
 
 def get_pr_handler(remote_url: str, token: str) -> LazyGit:

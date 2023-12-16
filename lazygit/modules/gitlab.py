@@ -5,7 +5,7 @@ from lazygit.modules.abstract import LazyGit
 
 
 class GitlabHandler(LazyGit):
-    pr_template_file = '.gitlab/merge_request_templates/default.md'
+    pr_template_file = ".gitlab/merge_request_templates/default.md"
 
     def get_endpoint(self, endpoint: str, token: str) -> str:
         return f"{self.domain}/api/v4/{endpoint}?private_token={token}"

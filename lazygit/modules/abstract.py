@@ -18,8 +18,8 @@ class LazyGit(ABC):
     def get_description(self) -> str:
         template = None
         if os.path.isfile(self.pr_template_file):
-            with open(self.pr_template_file, encoding='utf-8') as fobj:
-                template =fobj.read()
+            with open(self.pr_template_file, encoding="utf-8") as fobj:
+                template = fobj.read()
         description = click.edit(template)
         assert isinstance(description, str)
         return description

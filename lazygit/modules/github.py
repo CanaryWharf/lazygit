@@ -9,7 +9,12 @@ class GithubHandler(LazyGit):
     api_domain = "https://api.github.com"
 
     def post_data(self, endpoint: str, token: str, data: dict):
-        return requests.post(f"{self.api_domain}/{endpoint}", json=data, headers={"Authorization": f"Bearer {token}"}, timeout=30)
+        return requests.post(
+            f"{self.api_domain}/{endpoint}",
+            json=data,
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=30,
+        )
 
     def open_pr(
         self,

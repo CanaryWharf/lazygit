@@ -4,6 +4,7 @@ For when you want to make PRs without visiting the website
 ## Installation
 - Clone the repo
 - run a `pip install lazygit/`
+- export env var `LAZYGIT_ACCESS_TOKEN` with your personal access token (for gitlab/github)
 
 NOTE: If you want to use a specific editor (Not the terminal default, usually vi), you'll need to set the `$EDITOR` env var
 For vscode, you should add the following to your env vars
